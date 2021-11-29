@@ -5,41 +5,70 @@ Created on Fri Dec 13 11:37:29 2019
 @author: c02662
 """
 
-# Importation des modules perso
-from datetime import datetime, timedelta, date
 
-import time
+# Importation des modules perso
+import locale
+locale.setlocale(locale.LC_TIME, "fr")
 import pandas as pd
 import sys
+import time
 
-from dateutil.relativedelta import relativedelta
-import locale
-
-locale.setlocale(locale.LC_TIME, "fr")
 import os
 
-sys.path.append(os.path.abspath(
-    "//FRSHARES0479.france.intra.corp/Corporate_Remarketing/Remarketing_Data_Intelligence/200_MARKET_INTELLIGENCE/210_WEBSCRAPPING/213_SCRAPPING/"))
+import re
+import json
+from pandas.io.json import json_normalize
+
+from random import randint
+from time import sleep
+
+
+sys.path.append(os.path.abspath("C:\\Users\\PC portable\\PycharmProjects\\Scrapping_LaCentrale"))
 import Scrapping_def
 
 user = "c02662"
 password = "XSL-Mcosmic4000"
 # Test du User/password
 url = "https://www.google.fr/"
-Scrapping_def.proxy_test(user, password, url)
+#Scrapping_def.proxy_test(user, password, url)
 
 page = 0
 url = "https://www.lacentrale.fr/pro_list.php?rubrique=VEHICULES&num_page={}".format(page)
 print(url)
 
-soup_mysite = Scrapping_def.DOM_extract(user, password, url, chrome=True, sleep=True)
+soup_mysite = Scrapping_def.DOM_extract(user, password, url, chrome=False, sleep=False)
+#print(soup_mysite)
 
-print(soup_mysite)
 
-FileOut = "//FRSHARES0479.france.intra.corp/Corporate_Remarketing/MIT/10_EXTERNAL_DATA/01_WebScrapping/Python/extraction/LC/dealers/List_dealers_LaCentrale_20191312.csv"
+test = soup_mysite.find("div", {"class": "B2B-vitrines-annuaire"}).find_all("script")
+test1 = test[1]
+#print(test1)
+json_re = re.search(r'VitrinesAnnuaireData\s*=\s*(.*?})\s*\n',str(test[1]),flags=re.DOTALL)
+json_str = str(json_re[1])
+#print(json_str)
 
-soup_mysite = scrAPI.DOM_extract(user, password, url, chrome=False, sleep=False)
-# print(soup_mysite)
+Json_dataframe = json_normalize(json.loads(json_str)['vitrines'])
+
+#for i in range(1,389):
+for i in range(1,389):
+    if i % 3 == 0:
+        time.sleep(randint(1, 2))
+    url = "https://www.lacentrale.fr/pro_list.php?rubrique=VEHICULES&num_page={}".format(i)
+    print("Page ", i, "URL :", url)
+    soup_mysite = Scrapping_def.DOM_extract(user, password, url, chrome=False, sleep=False)
+    test = soup_mysite.find("div", {"class": "B2B-vitrines-annuaire"}).find_all("script")
+    json_re = re.search(r'VitrinesAnnuaireData\s*=\s*(.*?})\s*\n',str(test[1]),flags=re.DOTALL)
+    json_str = str(json_re[1])
+    Json_dataframe_tp = json_normalize(json.loads(json_str)['vitrines'])
+    Json_dataframe = Json_dataframe.append(Json_dataframe_tp)
+
+
+
+Json_dataframe.to_csv("C:\\Users\\PC portable\\PycharmProjects\\Scrapping_LaCentrale\\Annuaire_dealers.csv", index=False, sep=";", encoding="ISO-8859-1")
+
+    
+    
+####### OLD VERSION #####
 
 
 ## Nombre de dealers et nombre de pages :
@@ -56,8 +85,6 @@ nb_pages = 380
 list_URL = []
 list_VolAdds = []
 for i in range(npage_deb, nb_pages + 1):
-    url = "https://www.lacentrale.fr/pro_list.php?rubrique=VEHICULES&num_page={}".format(i)
-    print("Page ", i, "URL :", url)
     soup_mysite = scrAPI.DOM_extract(user, password, url, chrome=False, sleep=False)
     ids = [x.find("a", {"class": "btnDark btnNbAd"})["href"] for x in
            soup_mysite.find_all("div", {"class": "itemListing pH10 hiddenOverflow"})]
